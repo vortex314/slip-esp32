@@ -1,27 +1,27 @@
 #include <Hardware.h>
 #include <limero.h>
 
+#include "../components/SIO/sio.cpp"
 #include "driver/uart.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "lwip/init.h"
 #include "lwip/ip.h"
 #include "lwip/netif.h"
+#include "lwip/sio.h"
 #include "lwip/tcpip.h"
 #include "lwip/timeouts.h"
 #include "netif/slipif.h"
-/*#include "esp_netif.h"
-#include "esp_netif_slip.h"*/
+#include "syslog.h"
 
 Log logger(1024);
+Syslog syslog;
 
 struct netif sl_netif;
 ip4_addr_t ipaddr;
 ip4_addr_t netmask;
 ip4_addr_t gw;
 uint32_t interface = 0;
-
-
 
 static void status_callback(struct netif* state_netif) {
   if (netif_is_up(state_netif)) {
@@ -44,10 +44,8 @@ static void link_callback(struct netif* state_netif) {
   }
 }
 
-
 extern "C" void app_main(void) {
   INFO(" Starting build : %s ", __DATE__);
-
   INFO(" setting SLIP config ");
   IP4_ADDR(&ipaddr, 192, 168, 1, 2);
   IP4_ADDR(&netmask, 255, 255, 255, 0);
@@ -59,12 +57,18 @@ extern "C" void app_main(void) {
   if (nif != 0) {
     netif_set_default(&sl_netif);
     netif_set_status_callback(&sl_netif, status_callback);
- //   netif_set_link_callback(&sl_netif, link_callback);
+    //   netif_set_link_callback(&sl_netif, link_callback);
 
     netif_set_up(&sl_netif);
+    tcpip_init(NULL, NULL);
+    if (syslog.init("192.168.1.1", 514)) {
+      std::string msg = "UDP Log ";
+      syslog.log(msg.c_str(), msg.length());
+    }
   }
   while (true) {
-  //  slipif_poll(&sl_netif);
-    vTaskDelay(1);
+    std::string msg = "UDP Log ";
+    syslog.log(msg.c_str(), msg.length());
+    vTaskDelay(100);
   }
 }

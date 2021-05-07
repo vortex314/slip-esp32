@@ -16,7 +16,6 @@ bool uart_poll;
 UART &uart = UART::create(UART_NUM_1, TXD_PIN, RXD_PIN);
 
 void IRAM_ATTR onUartRxd(void *) {
-  INFO(".");
   while (uart.hasData()) {
     uint8_t c = uart.read();
     slipif_rxbyte_input(&sl_netif, c);
@@ -33,7 +32,7 @@ void IRAM_ATTR onUartRxd(void *) {
  */
 extern "C" sio_fd_t IRAM_ATTR sio_open(u8_t devnum) {
   uart.mode("8N1");
-  uart.setClock(115200);
+  uart.setClock(1000000);
   uart.init();
   uart.onRxd(onUartRxd, 0);
   return (sio_fd_t)1;
