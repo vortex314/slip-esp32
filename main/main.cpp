@@ -11,6 +11,7 @@
 #include "lwip/sio.h"
 #include "lwip/tcpip.h"
 #include "lwip/timeouts.h"
+#include "lwip/udp.h"
 #include "netif/slipif.h"
 #include "syslog.h"
 
@@ -46,6 +47,8 @@ static void link_callback(struct netif* state_netif) {
 
 extern "C" void app_main(void) {
   INFO(" Starting build : %s ", __DATE__);
+  tcpip_init(NULL, NULL);
+  udp_init();
   INFO(" setting SLIP config ");
   IP4_ADDR(&ipaddr, 192, 168, 1, 2);
   IP4_ADDR(&netmask, 255, 255, 255, 0);
@@ -55,12 +58,14 @@ extern "C" void app_main(void) {
                                 slipif_init, ip_input);
 
   if (nif != 0) {
-    netif_set_default(&sl_netif);
     netif_set_status_callback(&sl_netif, status_callback);
-    //   netif_set_link_callback(&sl_netif, link_callback);
-
+    netif_set_default(&sl_netif);
+    netif_set_link_up(&sl_netif);
     netif_set_up(&sl_netif);
-    tcpip_init(NULL, NULL);
+    //   netif_set_link_callback(&sl_netif, link_callback);
+    //    tcpip_init(NULL, NULL);
+    //    udp_init();
+    vTaskDelay(10);
     if (syslog.init("192.168.1.1", 514)) {
       std::string msg = "UDP Log ";
       syslog.log(msg.c_str(), msg.length());

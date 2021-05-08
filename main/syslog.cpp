@@ -32,6 +32,9 @@ void Syslog::log(const char *line, int length) {
   _buf = netbuf_new();
   _data = netbuf_alloc(_buf, _logRecord.length());
   memcpy(_data, _logRecord.c_str(), _logRecord.length());
-  netconn_send(_conn, _buf);
+  err_t err = netconn_send(_conn, _buf);
+  if (err) INFO(" netconn_send() %d", err);
+  err = netconn_sendto(_conn, _buf, &_addr, _port);
+  if (err) INFO(" netconn_sendto() %d", err);
   netbuf_delete(_buf);
 }
