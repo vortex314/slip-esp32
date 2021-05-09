@@ -4,6 +4,7 @@
 #include <limero.h>
 
 #include "../components/SIO/sio.cpp"
+#include "MqttClient.h"
 #include "driver/uart.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -18,10 +19,12 @@
 #include "netif/slipif.h"
 #include "syslog.h"
 
+MqttClient mqtt;
+
 Log logger(1024);
-Syslog syslog;
 Thread mqttThread("mqtt");
-MqttWifi mqtt(mqttThread);
+Syslog syslog(mqttThread);
+// MqttWifi mqtt(mqttThread);
 
 struct netif sl_netif;
 ip4_addr_t ipaddr;
@@ -79,22 +82,24 @@ extern "C" void app_main(void) {
     //   netif_set_link_callback(&sl_netif, link_callback);
     vTaskDelay(10);
     syslog.init("192.168.1.1", 514);
-    //    mqtt.init();
+    mqtt.init("192.168.1.1");
   }
   //  mqtt.wifiConnected.on(true);
-  poller.connected = true;
-  //-----------------------------------------------------------------  SYS props
-  poller >> systemUptime >> mqtt.toTopic<uint64_t>("system/upTime");
-  poller >> systemHeap >> mqtt.toTopic<uint32_t>("system/heap");
-  poller >> systemHostname >> mqtt.toTopic<std::string>("system/hostname");
-  poller >> systemBuild >> mqtt.toTopic<std::string>("system/build");
-  poller >> systemAlive >> mqtt.toTopic<bool>("system/alive");
+  /* poller.connected = true;
+   //-----------------------------------------------------------------  SYS
+   props poller >> systemUptime >> mqtt.toTopic<uint64_t>("system/upTime");
+   poller >> systemHeap >> mqtt.toTopic<uint32_t>("system/heap");
+   poller >> systemHostname >> mqtt.toTopic<std::string>("system/hostname");
+   poller >> systemBuild >> mqtt.toTopic<std::string>("system/build");
+   poller >> systemAlive >> mqtt.toTopic<bool>("system/alive");*/
   mqttThread.start();
   vTaskDelay(10);
   //  mqtt.wifiConnected.on(true);
   while (true) {
-    std::string msg = "UDP Log ";
-    //    syslog.log(msg.c_str(), msg.length());
+    INFO(" INFO log ! %ld", Sys::millis());
+    std::string message = std::to_string(Sys::millis());
+    std::string topic = "src/ESP/system/upTime";
+    mqtt.publish(topic, message);
     vTaskDelay(100);
   }
 }

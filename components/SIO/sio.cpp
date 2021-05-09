@@ -11,17 +11,24 @@ extern "C" void slipif_rxbyte_input(struct netif *netif, u8_t c);
 
 bool uart_poll;
 
-
 #define TXD_PIN 21
 #define RXD_PIN 19
+#define FTDI
+
+#ifdef CP2102 
+UART &uart = UART::create(UART_NUM_0, TXD_PIN, RXD_PIN);  // pins not used,onboard USB
+#define BAUDRATE 921600
+#endif
+#ifdef FTDI 
 UART &uart = UART::create(UART_NUM_1, TXD_PIN, RXD_PIN);
+#define BAUDRATE 1000000
+#endif
+
 
 void IRAM_ATTR onUartRxd(void *) {
   while (uart.hasData()) {
     uint8_t c = uart.read();
     slipif_rxbyte_input(&sl_netif, c);
-    //  sl_netif.input(c);
-    //    slipif_received_byte(&sl_netif, c);
   }
 }
 
@@ -33,7 +40,7 @@ void IRAM_ATTR onUartRxd(void *) {
  */
 extern "C" sio_fd_t IRAM_ATTR sio_open(u8_t devnum) {
   uart.mode("8N1");
-  uart.setClock(1000000);
+  uart.setClock(BAUDRATE);
   uart.init();
   uart.onRxd(onUartRxd, 0);
   return (sio_fd_t)1;
@@ -47,9 +54,7 @@ extern "C" sio_fd_t IRAM_ATTR sio_open(u8_t devnum) {
  *
  * @note This function will block until the character can be sent.
  */
-extern "C" void IRAM_ATTR sio_send(u8_t c, sio_fd_t fd) {
-  uart.write(c);
-}
+extern "C" void IRAM_ATTR sio_send(u8_t c, sio_fd_t fd) { uart.write(c); }
 
 /**
  * Receives a single character from the serial device.

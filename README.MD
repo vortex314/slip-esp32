@@ -56,7 +56,7 @@ Then investigated what latency could occur on the USB line , and found these art
 
 So I applied the command 
 ```
-root@pcpro:/sys/bus/usb-serial/devices# echo 1 >ttyUSB2/latency_timer
+$ sudo echo 1 >/sys/bus/usb-serial/devices/ttyUSB2/latency_timer
 ```
 With the immediate effect on ping results. Hurrah ! 
 ```
@@ -66,8 +66,31 @@ With the immediate effect on ping results. Hurrah !
 38 bytes from 192.168.1.2: icmp_seq=1459 ttl=255 time=3.17 ms
 38 bytes from 192.168.1.2: icmp_seq=1460 ttl=255 time=3.67 ms
 ```
+# RSYSLOG logging via UDP on SLIP
+- uncomment udp adapt config /etc/rsyslog.conf
+```
+module(load="imudp")
+input(type="imudp" port="514")
+```
+- send user log to user.log , change /etc/rsyslog.d/50-default.conf
+
+```
+auth,authpriv.*                 /var/log/auth.log
+# *.*;auth,authpriv.none                -/var/log/syslog
+#cron.*                         /var/log/cron.log
+#daemon.*                       -/var/log/daemon.log
+kern.*                          -/var/log/kern.log
+#lpr.*                          -/var/log/lpr.log
+mail.*                          -/var/log/mail.log
+user.*                          -/var/log/user.log
+
+```
 
 ```
 
 lieven@pcpro:/var/log$ sudo service rsyslog restart
 lieven@pcpro:/var/log$ netstat -lnpu
+```
+
+# History
+- May 10 : MQTT based on LWIP works fine till 50 msg/sec and UDP log till 100 logs/sec

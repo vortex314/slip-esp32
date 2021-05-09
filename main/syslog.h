@@ -1,6 +1,7 @@
 #ifndef SYSLOG_H
 #define SYSLOG_H
 #include <Log.h>
+#include <limero.h>
 #include <lwip/api.h>
 #include <lwip/ip_addr.h>
 #include <lwip/netbuf.h>
@@ -16,12 +17,13 @@
 #define FACILITY_MAIL (2 << 3)   /* mail system */
 #define FACILITY_DAEMON (3 << 3) /* system daemons */
 #define FACILITY_AUTH (4 << 3)   /* security/authorization messages */
-#define FACILITY_SYSLOG (5 << 3) /* messages generated internally by syslogd \
-                                  */
-#define FACILITY_LPR (6 << 3)    /* line printer subsystem */
-#define FACILITY_NEWS (7 << 3)   /* network news subsystem */
-#define FACILITY_UUCP (8 << 3)   /* UUCP subsystem */
-#define FACILITY_CRON (9 << 3)   /* clock daemon */
+#define FACILITY_SYSLOG                                                    \
+  (5 << 3)                     /* messages generated internally by syslogd \
+                                */
+#define FACILITY_LPR (6 << 3)  /* line printer subsystem */
+#define FACILITY_NEWS (7 << 3) /* network news subsystem */
+#define FACILITY_UUCP (8 << 3) /* UUCP subsystem */
+#define FACILITY_CRON (9 << 3) /* clock daemon */
 #define FACILITY_AUTHPRIV \
   (10 << 3)                    /* security/authorization messages (private) */
 #define FACILITY_FTP (11 << 3) /* ftp daemon */
@@ -46,7 +48,7 @@
 #define SEVERITY_INFO 6    /* informational */
 #define SEVERITY_DEBUG 7   /* debug-level messages */
 
-class Syslog {
+class Syslog : public Actor {
   struct netconn *_conn;
   ip_addr_t _addr;
   int _port;
@@ -55,8 +57,10 @@ class Syslog {
   std::string _logRecord;
 
  public:
+  Syslog(Thread &);
   bool init(const char *ip, int port);
   void log(const char *line, int length);
+  void simple(const char *line, int length);
 };
 
 #endif
