@@ -37,7 +37,7 @@ static void status_callback(struct netif *state_netif) {
 #else
     INFO("status_callback==UP\n");
 #endif
- //   mqtt.wifiConnected.on(true);
+    //   mqtt.wifiConnected.on(true);
 
   } else {
     INFO("status_callback==DOWN\n");
@@ -61,7 +61,7 @@ Poller poller(mqttThread);
 
 extern "C" void app_main(void) {
   INFO(" Starting build : %s ", __DATE__);
-  tcpip_init(NULL, NULL);
+  tcpip_init([](void *) { INFO(" TCP ready "); }, NULL);
   udp_init();
   INFO(" setting SLIP config ");
   IP4_ADDR(&ipaddr, 192, 168, 1, 2);
@@ -79,9 +79,9 @@ extern "C" void app_main(void) {
     //   netif_set_link_callback(&sl_netif, link_callback);
     vTaskDelay(10);
     syslog.init("192.168.1.1", 514);
-//    mqtt.init();
+    //    mqtt.init();
   }
-//  mqtt.wifiConnected.on(true);
+  //  mqtt.wifiConnected.on(true);
   poller.connected = true;
   //-----------------------------------------------------------------  SYS props
   poller >> systemUptime >> mqtt.toTopic<uint64_t>("system/upTime");
@@ -91,10 +91,10 @@ extern "C" void app_main(void) {
   poller >> systemAlive >> mqtt.toTopic<bool>("system/alive");
   mqttThread.start();
   vTaskDelay(10);
-//  mqtt.wifiConnected.on(true);
+  //  mqtt.wifiConnected.on(true);
   while (true) {
     std::string msg = "UDP Log ";
-//    syslog.log(msg.c_str(), msg.length());
+    //    syslog.log(msg.c_str(), msg.length());
     vTaskDelay(100);
   }
 }

@@ -11,26 +11,18 @@ extern "C" void slipif_rxbyte_input(struct netif *netif, u8_t c);
 
 bool uart_poll;
 
-static uint64_t lastByteRead;
-static uint64_t firstByteSend;
-static uint32_t count = 0;
 
 #define TXD_PIN 21
 #define RXD_PIN 19
 UART &uart = UART::create(UART_NUM_1, TXD_PIN, RXD_PIN);
 
 void IRAM_ATTR onUartRxd(void *) {
-  lastByteRead = Sys::millis();
-  firstByteSend = 0;
-  uint32_t cnt=0;
   while (uart.hasData()) {
-    cnt++;
     uint8_t c = uart.read();
     slipif_rxbyte_input(&sl_netif, c);
     //  sl_netif.input(c);
     //    slipif_received_byte(&sl_netif, c);
   }
-  if ( cnt > count ) count=cnt;
 }
 
 /**
@@ -57,10 +49,6 @@ extern "C" sio_fd_t IRAM_ATTR sio_open(u8_t devnum) {
  */
 extern "C" void IRAM_ATTR sio_send(u8_t c, sio_fd_t fd) {
   uart.write(c);
-  if (firstByteSend == 0) {
-    firstByteSend = Sys::millis();
-    INFO(" delta : %lu max chars :%d ", firstByteSend - lastByteRead,count);
-  }
 }
 
 /**
