@@ -7,11 +7,12 @@ set(WIFI_PASS $ENV{WIFI_PASS})
 set(COMPONENT_SRCDIRS main)
 
 
-include_directories( main  sio )
-add_definitions(-DWIFI_PASS=${WIFI_PASS} -DWIFI_SSID=${WIFI_SSID} -DESP32_IDF -DMQTT_HOST=limero.ddns.net -DMQTT_PORT=1883 -DHOSTNAME=triac)
+include_directories( main  sio ../ArduinoJson/src )
+add_definitions(-DWIFI_PASS=${WIFI_PASS} -DWIFI_SSID=${WIFI_SSID} -DESP32_IDF -DMQTT_HOST=192.168.1.1 -DMQTT_PORT=1883 -DHOSTNAME=triac)
 # add_compile_options( -mtext-section-literals -ffunction-sections )
 
-set(EXTRA_COMPONENT_DIRS /home/lieven/workspace/limero/esp32_idf components/sio )
+set(EXTRA_COMPONENT_DIRS /home/lieven/workspace/limero/esp32_idf components )
+
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 

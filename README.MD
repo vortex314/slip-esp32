@@ -5,7 +5,7 @@
 - run telnet CLI on microcontroller
 # build 
 CONFIG_LWIP_NETIF_STATUS_CALLBACK=y
-
+lieven@pcpro:~/esp/esp-idf/components/lwip$ cp -r lwip/src/apps/mqtt apps 
 
 # adapt slattach 
 The standard slattach is available on a lot of linux systems, however, it's not adapted to accept any baudrate higher than 115200. 
@@ -49,5 +49,25 @@ PING 192.168.1.2 (192.168.1.2) 56(84) bytes of data.
 3 packets transmitted, 3 received, 0% packet loss, time 2002ms
 rtt min/avg/max/mdev = 17.739/17.789/17.819/0.035 ms
 ```
+The delay looked huge on a 1Mbit line, measuring the delay within the LWIP stack was smaller than 1 mS
+Then investigated what latency could occur on the USB line , and found these articles
+- https://www.ftdichip.com/Documents/AppNotes/AN232B-04_DataLatencyFlow.pdf
+- https://granitedevices.com/wiki/FTDI_Linux_USB_latency
+
+So I applied the command 
+```
+root@pcpro:/sys/bus/usb-serial/devices# echo 1 >ttyUSB2/latency_timer
+```
+With the immediate effect on ping results. Hurrah ! 
+```
+38 bytes from 192.168.1.2: icmp_seq=1456 ttl=255 time=18.6 ms
+38 bytes from 192.168.1.2: icmp_seq=1457 ttl=255 time=18.4 ms
+38 bytes from 192.168.1.2: icmp_seq=1458 ttl=255 time=3.47 ms
+38 bytes from 192.168.1.2: icmp_seq=1459 ttl=255 time=3.17 ms
+38 bytes from 192.168.1.2: icmp_seq=1460 ttl=255 time=3.67 ms
+```
+
+```
+
 lieven@pcpro:/var/log$ sudo service rsyslog restart
 lieven@pcpro:/var/log$ netstat -lnpu
