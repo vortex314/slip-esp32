@@ -1,4 +1,4 @@
-#include "syslog.h"
+#include "Syslog.h"
 
 #include <Log.h>
 #include <esp_log.h>

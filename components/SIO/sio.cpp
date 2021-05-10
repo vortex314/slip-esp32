@@ -7,6 +7,7 @@
 #include "netif/slipif.h"
 
 extern struct netif sl_netif;
+extern struct netif ppp_netif;
 extern "C" void slipif_rxbyte_input(struct netif *netif, u8_t c);
 
 bool uart_poll;
@@ -15,20 +16,25 @@ bool uart_poll;
 #define RXD_PIN 19
 #define FTDI
 
-#ifdef CP2102 
-UART &uart = UART::create(UART_NUM_0, TXD_PIN, RXD_PIN);  // pins not used,onboard USB
+#ifdef CP2102
+UART &uart =
+    UART::create(UART_NUM_0, TXD_PIN, RXD_PIN);  // pins not used,onboard USB
 #define BAUDRATE 921600
 #endif
-#ifdef FTDI 
+#ifdef FTDI
 UART &uart = UART::create(UART_NUM_1, TXD_PIN, RXD_PIN);
 #define BAUDRATE 1000000
 #endif
 
-
 void IRAM_ATTR onUartRxd(void *) {
   while (uart.hasData()) {
     uint8_t c = uart.read();
+#ifdef SLIP
     slipif_rxbyte_input(&sl_netif, c);
+#endif
+#ifdef PPP
+    pppos_input(&ppp_netif, &c, 1);
+#endif
   }
 }
 
