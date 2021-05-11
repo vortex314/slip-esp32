@@ -22,7 +22,7 @@ class MqttClient {
 #endif
   };
  public:
-  void init(const char* mqttIp);
+  void init(const char* mqttIp,uint32_t port=1883);
 
   static void mqtt_incoming_data_cb(void* arg, const u8_t* data, u16_t len,
                                     u8_t flags);

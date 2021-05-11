@@ -40,8 +40,10 @@ extern "C" void app_main(void) {
     if (PppInit())
 #endif
     {
+      mqttThread.start();
+      vTaskDelay(10);
       //     syslog.init("192.168.1.1", 514);
-      mqtt.init("192.168.1.1");
+      mqtt.init("limero.ddns.net");
     };
   //  mqtt.wifiConnected.on(true);
   /* poller.connected = true;
@@ -51,13 +53,20 @@ extern "C" void app_main(void) {
    poller >> systemHostname >> mqtt.toTopic<std::string>("system/hostname");
    poller >> systemBuild >> mqtt.toTopic<std::string>("system/build");
    poller >> systemAlive >> mqtt.toTopic<bool>("system/alive");*/
-  mqttThread.start();
-  vTaskDelay(10);
+
   while (true) {
     INFO(" INFO log ! %ld", Sys::millis());
     std::string message = std::to_string(Sys::millis());
     std::string topic = "src/ESP/system/upTime";
     mqtt.publish(topic, message);
-    vTaskDelay(10);
+    ip_addr_t addr;
+    err_t rc = dns_gethostbyname(
+        "limero.ddns.net", &addr,
+        [](const char *name, const ip_addr_t *ipaddr, void *callback_arg) {
+          INFO(" hostname found %s", name);
+        },
+        0);
+    INFO(" err %d : dns_gethostbyname()", rc);
+    vTaskDelay(100);
   }
 }

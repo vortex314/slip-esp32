@@ -1,5 +1,6 @@
 #include <Hardware.h>
 #include <Log.h>
+#include <Sio.h>
 
 #include "lwip/apps/mqtt.h"
 #include "lwip/init.h"
@@ -13,59 +14,24 @@
 
 extern "C" void slipif_rxbyte_input(struct netif *netif, u8_t c);
 
-#define FTDI
+#define TXD_PIN 21
+#define RXD_PIN 19
+
+#define UART_USED UART_NUM_1
+
+#if UART_USED ==  UART_NUM_0
+#define BAUDRATE 921600
+#endif
+#if UART_USED ==  UART_NUM_1
+#define BAUDRATE 1000000
+#endif
 
 struct netif sl_netif;
 ip4_addr_t ipaddr;
 ip4_addr_t netmask;
 ip4_addr_t gw;
 uint32_t interface = 0;
-bool uart_poll = false;
 
-//______________________________________________________________________________________________
-#define TXD_PIN 21
-#define RXD_PIN 19
-#define UART_NUM_1 1
-
-#ifdef CP2102
-UART &uart =
-    UART::create(UART_NUM_0, TXD_PIN, RXD_PIN);  // pins not used,onboard USB
-#define BAUDRATE 921600
-#endif
-#ifdef FTDI
-UART &uart = UART::create(UART_NUM_1, TXD_PIN, RXD_PIN);
-#define BAUDRATE 1000000
-#endif
-
-void IRAM_ATTR onUartRxd(void *) {
-  while (uart.hasData()) {
-    uint8_t c = uart.read();
-    slipif_rxbyte_input(&sl_netif, c);
-  }
-}
-
-extern "C" sio_fd_t IRAM_ATTR sio_open(u8_t devnum) {
-  uart.mode("8N1");
-  uart.setClock(BAUDRATE);
-  uart.init();
-  uart.onRxd(onUartRxd, 0);
-  return (sio_fd_t)1;
-}
-
-extern "C" void IRAM_ATTR sio_send(u8_t c, sio_fd_t fd) { uart.write(c); }
-
-extern "C" u32_t IRAM_ATTR sio_read(sio_fd_t fd, u8_t *data, u32_t len) {
-  uart_poll = true;
-  int count = 0;
-  while (uart_poll) {
-    while (uart.hasData() && count < len) {
-      data[count] = uart.read();
-      count++;
-    }
-    if (count) return count;
-  }
-  return 0;
-}
 //______________________________________________________________________________________________
 
 static void status_callback(struct netif *state_netif) {
@@ -94,6 +60,10 @@ static void link_callback(struct netif *state_netif) {
 bool SlipInit() {
   tcpip_init([](void *) { INFO(" TCP ready "); }, NULL);
   udp_init();
+ /* Sio::createInstance(1600, 0x7E, TXD_PIN, RXD_PIN, BAUDRATE,
+                      [](uint8_t *buffer, uint32_t length) {
+                        ip_input(ppp, buffer, length);
+                      });*/
   INFO(" setting SLIP config ");
   IP4_ADDR(&ipaddr, 192, 168, 1, 2);
   IP4_ADDR(&netmask, 255, 255, 255, 0);

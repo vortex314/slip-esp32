@@ -2,8 +2,9 @@
 #include <Log.h>
 #include <MqttClient.h>
 
-void MqttClient::init(const char* mqttIp) {
+void MqttClient::init(const char* mqttIp,uint32_t port) {
   err_t rc;
+  _mqtt_port=port;
   ipaddr_aton(mqttIp, &_mqtt_ip);
   mqtt_client = mqtt_client_new();
   mqtt_client_info.client_id = Sys::hostname();
