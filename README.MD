@@ -1,8 +1,9 @@
 # Purpose
 - Use USB connected microcontrollers as slave devices from Raspberry Pi 
-- run SLIP via USB 
+- run SLIP or PPP via USB 
 - run MQTT client on microcontroller
 - run telnet CLI on microcontroller
+- run tftp server on microcontroller for Over-The-Air updates
 # build 
 CONFIG_LWIP_NETIF_STATUS_CALLBACK=y
 lieven@pcpro:~/esp/esp-idf/components/lwip$ cp -r lwip/src/apps/mqtt apps 
@@ -94,3 +95,26 @@ lieven@pcpro:/var/log$ netstat -lnpu
 
 # History
 - May 10 : MQTT based on LWIP works fine till 50 msg/sec and UDP log till 100 logs/sec
+- May 11 : PPP reliably 1.8 ms Ping time
+
+# IP routing on ppd server
+? how do i get DNS and internet routing
+```
+sudo iptables -t nat -A POSTROUTING -o ppp0 -j MASQUERADE
+sudo sysctl -w net.ipv4.ip_forward=1
+
+```
+
+https://unix.stackexchange.com/questions/71500/iptables-forward-with-pptp-and-openvpn
+iptables -t filter -F
+iptables -t nat -F
+iptables --flush
+  iptables --table nat --flush
+  iptables --delete-chain
+  iptables --table nat --delete-chain
+  iptables --table nat --append POSTROUTING --out-interface enp3s0 -j MASQUERADE
+  iptables --append FORWARD --in-interface ppp0 -j ACCEPT
+  iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+  ```
+

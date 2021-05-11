@@ -2,17 +2,16 @@
 #include <Log.h>
 #include <MqttClient.h>
 
-void MqttClient::init(const char* mqttIp,uint32_t port) {
+void MqttClient::init(const char* mqttIp, uint32_t port) {
   err_t rc;
-  _mqtt_port=port;
+  _mqtt_port = port;
   ipaddr_aton(mqttIp, &_mqtt_ip);
   mqtt_client = mqtt_client_new();
   mqtt_client_info.client_id = Sys::hostname();
   // !! Example code on Savannah site has bad order of calls , see :
   // http://savannah.nongnu.org/bugs/?58406
-  rc = mqtt_client_connect(
-      mqtt_client, &_mqtt_ip, _mqtt_port, mqtt_connection_cb,
-      LWIP_CONST_CAST(void*, &mqtt_client_info), &mqtt_client_info);
+  rc = mqtt_client_connect(mqtt_client, &_mqtt_ip, _mqtt_port,
+                           mqtt_connection_cb, this, &mqtt_client_info);
   if (rc != ERR_OK) WARN("MQTT connect failed");
   mqtt_set_inpub_callback(mqtt_client, mqtt_incoming_publish_cb,
                           mqtt_incoming_data_cb,
@@ -48,8 +47,9 @@ void MqttClient::mqtt_request_cb(void* arg, err_t err) {
 
 void MqttClient::mqtt_connection_cb(mqtt_client_t* client, void* arg,
                                     mqtt_connection_status_t status) {
+  MqttClient* self = (MqttClient*)arg;
   const struct mqtt_connect_client_info_t* client_info =
-      (const struct mqtt_connect_client_info_t*)arg;
+      &self->mqtt_client_info;
   LWIP_UNUSED_ARG(client);
 
   LWIP_PLATFORM_DIAG(("MQTT client \"%s\" connection cb: status %d\n",
@@ -60,6 +60,11 @@ void MqttClient::mqtt_connection_cb(mqtt_client_t* client, void* arg,
                    LWIP_CONST_CAST(void*, client_info), 1);
     mqtt_sub_unsub(client, "topic_qos0", 0, mqtt_request_cb,
                    LWIP_CONST_CAST(void*, client_info), 1);
+  } else {
+    err_t rc =
+        mqtt_client_connect(self->mqtt_client, &self->_mqtt_ip, self->_mqtt_port,
+                            mqtt_connection_cb, self, &self->mqtt_client_info);
+    if (rc != ERR_OK) WARN("MQTT connect failed");
   }
 }
 

@@ -22,7 +22,7 @@ class MqttClient {
 #endif
   };
  public:
-  void init(const char* mqttIp,uint32_t port=1883);
+  void init(const char* mqttIp, uint32_t port = 1883);
 
   static void mqtt_incoming_data_cb(void* arg, const u8_t* data, u16_t len,
                                     u8_t flags);
@@ -36,7 +36,7 @@ class MqttClient {
                                  mqtt_connection_status_t status);
 
   void publish(std::string& topic, std::string& message);
-  static void publish_request_cb(void*,err_t) ;
+  static void publish_request_cb(void*, err_t);
 };
 
 #endif
