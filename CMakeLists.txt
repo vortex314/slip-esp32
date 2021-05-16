@@ -8,7 +8,14 @@ set(COMPONENT_SRCDIRS main)
 
 
 include_directories( main  sio ../ArduinoJson/src )
-add_definitions(-DWIFI_PASS=${WIFI_PASS} -DWIFI_SSID=${WIFI_SSID} -DESP32_IDF -DMQTT_HOST=192.168.1.1 -DMQTT_PORT=1883 -DHOSTNAME=triac)
+add_definitions(-DWIFI_PASS=${WIFI_PASS} 
+-DWIFI_SSID=${WIFI_SSID} 
+-DESP32_IDF 
+-DMQTT_HOST=192.168.1.1 
+-DMQTT_PORT=1883 
+-DHOSTNAME=triac 
+-DSLIP_RX_FROM_ISR=1
+)
 # add_compile_options( -mtext-section-literals -ffunction-sections )
 
 set(EXTRA_COMPONENT_DIRS /home/lieven/workspace/limero/esp32_idf components )

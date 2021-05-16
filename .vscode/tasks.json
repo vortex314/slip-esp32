@@ -20,7 +20,7 @@
             },
             "args": [
                 "flash",
-                "ESPPORT=/dev/ttyUSB0",
+                "ESPPORT=/dev/ttyUSB1",
                 "ESPBAUD=921600"
             ],
             "problemMatcher": {

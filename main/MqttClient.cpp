@@ -4,8 +4,16 @@
 
 void MqttClient::init(const char* mqttIp, uint32_t port) {
   err_t rc;
+  ip_addr_t ipAddr;
   _mqtt_port = port;
-  ipaddr_aton(mqttIp, &_mqtt_ip);
+  ipaddr_aton(mqttIp, &ipAddr);
+  init(ipAddr);
+}
+
+void MqttClient::init(ip_addr_t ipAddress, uint32_t port) {
+  err_t rc;
+  _mqtt_port = port;
+  _mqtt_ip = ipAddress;
   mqtt_client = mqtt_client_new();
   mqtt_client_info.client_id = Sys::hostname();
   // !! Example code on Savannah site has bad order of calls , see :
@@ -24,8 +32,8 @@ void MqttClient::mqtt_incoming_data_cb(void* arg, const u8_t* data, u16_t len,
       (const struct mqtt_connect_client_info_t*)arg;
   LWIP_UNUSED_ARG(data);
 
-  LWIP_PLATFORM_DIAG(("MQTT client \"%s\" data cb: len %d, flags %d\n",
-                      client_info->client_id, (int)len, (int)flags));
+  INFO("MQTT client \"%s\" data cb: len %d, flags %d", client_info->client_id,
+       (int)len, (int)flags);
 }
 
 void MqttClient::mqtt_incoming_publish_cb(void* arg, const char* topic,
@@ -33,16 +41,16 @@ void MqttClient::mqtt_incoming_publish_cb(void* arg, const char* topic,
   const struct mqtt_connect_client_info_t* client_info =
       (const struct mqtt_connect_client_info_t*)arg;
 
-  LWIP_PLATFORM_DIAG(("MQTT client \"%s\" publish cb: topic %s, len %d\n",
-                      client_info->client_id, topic, (int)tot_len));
+  INFO("MQTT client \"%s\" publish cb: topic %s, len %d",
+       client_info->client_id, topic, (int)tot_len);
 }
 
 void MqttClient::mqtt_request_cb(void* arg, err_t err) {
   const struct mqtt_connect_client_info_t* client_info =
       (const struct mqtt_connect_client_info_t*)arg;
 
-  LWIP_PLATFORM_DIAG(("MQTT client \"%s\" request cb: err %d\n",
-                      client_info->client_id, (int)err));
+  INFO("MQTT client \"%s\" request cb: err %d", client_info->client_id,
+       (int)err);
 }
 
 void MqttClient::mqtt_connection_cb(mqtt_client_t* client, void* arg,
@@ -52,18 +60,16 @@ void MqttClient::mqtt_connection_cb(mqtt_client_t* client, void* arg,
       &self->mqtt_client_info;
   LWIP_UNUSED_ARG(client);
 
-  LWIP_PLATFORM_DIAG(("MQTT client \"%s\" connection cb: status %d\n",
-                      client_info->client_id, (int)status));
+  INFO("MQTT client \"%s\" connection cb: status %d\n", client_info->client_id,
+       (int)status);
 
   if (status == MQTT_CONNECT_ACCEPTED) {
-    mqtt_sub_unsub(client, "src/#", 0, mqtt_request_cb,
-                   LWIP_CONST_CAST(void*, client_info), 1);
-    mqtt_sub_unsub(client, "topic_qos0", 0, mqtt_request_cb,
+    mqtt_sub_unsub(client, "src/#", 1, mqtt_request_cb,
                    LWIP_CONST_CAST(void*, client_info), 1);
   } else {
-    err_t rc =
-        mqtt_client_connect(self->mqtt_client, &self->_mqtt_ip, self->_mqtt_port,
-                            mqtt_connection_cb, self, &self->mqtt_client_info);
+    err_t rc = mqtt_client_connect(self->mqtt_client, &self->_mqtt_ip,
+                                   self->_mqtt_port, mqtt_connection_cb, self,
+                                   &self->mqtt_client_info);
     if (rc != ERR_OK) WARN("MQTT connect failed");
   }
 }

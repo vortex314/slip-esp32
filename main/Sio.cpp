@@ -10,6 +10,8 @@ bool uart_poll;
 #define RXD_PIN 19
 #define FTDI
 
+#define UART_NUM_SLIP UART_NUM_1
+
 #ifdef CP2102
 UART &uart =
     UART::create(UART_NUM_0, TXD_PIN, RXD_PIN);  // pins not used,onboard USB
@@ -52,12 +54,19 @@ static void uart_event_task(void *pvParameters) {
 }
 
 Sio *Sio::_instance = 0;
-
+/// PPP
 u32_t Sio::write(u8_t *data, u32_t len) {
-//  INFO(" SIO write : %d ",len);
+  //  INFO(" SIO write : %d ",len);
   int rc = uart_write_bytes(_uartNum, data, len);
   return (rc < 0) ? 0 : len;
 }
+
+/// SLIP
+u32_t Sio::read(u8_t *data, u32_t len) {
+  return uart_read_bytes(_uartNum, data, len, (portTickType)portMAX_DELAY);
+}
+
+void Sio::send(u8_t c) { uart_write_bytes(_uartNum, &c, 1); }
 
 void Sio::event_task() {
   uart_event_t event;
@@ -74,10 +83,10 @@ void Sio::event_task() {
          data events than other types of events. If we take too much time
          on data event, the queue might be full.*/
         case UART_DATA: {
-          int n = uart_read_bytes(_uartNum, dtmp, event.size, portMAX_DELAY);
-          if (n < 0) ERROR("uart_read_bytes() failed.");
-          _bufferHandler(dtmp, n);
-//          INFO("UART_DATA : %d", n);
+          /*      int n = uart_read_bytes(_uartNum, dtmp, event.size,
+             portMAX_DELAY); if (n < 0) ERROR("uart_read_bytes() failed.");
+                _bufferHandler(dtmp, n);*/
+          //          INFO("UART_DATA : %d", n);
           break;
         }
         // Event of HW FIFO overflow detected
@@ -115,27 +124,17 @@ void Sio::event_task() {
         case UART_PATTERN_DET: {
           uart_get_buffered_data_len(_uartNum, &buffered_size);
           int pos = uart_pattern_pop_pos(_uartNum);
-          INFO("[UART PATTERN DETECTED] pos: %d, buffered size: %d", pos,
-               buffered_size);
           if (pos == -1) {
-            // There used to be a UART_PATTERN_DET event, but the
-            // pattern position queue is full so that it can not
-            // record the position. We should set a larger queue
-            // size. As an example, we directly flush the rx buffer
-            // here.
             uart_flush_input(_uartNum);
           } else {
-            int n =
-                uart_read_bytes(_uartNum, dtmp, pos, 100 / portTICK_PERIOD_MS);
-            if (n < 0) ERROR("uart_read_bytes() failed.");
-
-            uint8_t pat[PATTERN_CHR_NUM + 1];
-            memset(pat, 0, sizeof(pat));
-            n = uart_read_bytes(_uartNum, pat, PATTERN_CHR_NUM,
-                                100 / portTICK_PERIOD_MS);
-            if (n < 0) ERROR("uart_read_bytes() failed.");
-            INFO("read data: %s", dtmp);
-            INFO("read pat : %s", pat);
+            if (pos > 0) {
+              int n = uart_read_bytes(_uartNum, dtmp, pos + 1, 10);
+              if (n < 0) {
+                ERROR("uart_read_bytes() failed.");
+              } else {
+                _bufferHandler(dtmp, n);
+              }
+            }
           }
           break;
         }
@@ -152,7 +151,8 @@ void Sio::event_task() {
 }
 
 sio_fd_t Sio::open(u8_t devnum) {
-  _uartNum = devnum;
+  INFO(" Sio::open(%d)  ",devnum);
+  _uartNum = devnum > 2 ? UART_NUM_SLIP : devnum;
   _uart_config.data_bits = UART_DATA_8_BITS;
   _uart_config.parity = UART_PARITY_DISABLE;
   _uart_config.stop_bits = UART_STOP_BITS_1;
@@ -173,8 +173,12 @@ sio_fd_t Sio::open(u8_t devnum) {
     ERROR("uart_driver_install() failed.");
     return 0;
   }
-//  uart_enable_pattern_det_baud_intr(_uartNum, _pattern, 1, 10, 10, 10);
-//  uart_pattern_queue_reset(_uartNum, 20);
+  err_t erc =
+      uart_enable_pattern_det_baud_intr(_uartNum, _pattern, 1, 1000, 0, 0);
+  if (erc) WARN("uart_enable_pattern_det_baud_intr()=%d ", rc);
+  erc = uart_pattern_queue_reset(_uartNum, 20);
+  if (erc) WARN("uart_pattern_queue_reset()=%d ", rc);
+
   std::string taskName;
   string_format(taskName, "uart_event_task_%d", _uartNum);
   xTaskCreate(uart_event_task, taskName.c_str(), 3120, this,

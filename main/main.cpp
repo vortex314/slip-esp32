@@ -3,9 +3,10 @@
 #include <MqttWifi.h>
 #include <limero.h>
 
-#define PPP
+#define SLIP
 
 #ifdef SLIP
+#include <Sio.cpp>
 extern bool SlipInit();
 #endif
 
@@ -29,6 +30,7 @@ ValueSource<bool> systemAlive = true;
 LambdaSource<uint32_t> systemHeap([]() { return Sys::getFreeHeap(); });
 LambdaSource<uint64_t> systemUptime([]() { return Sys::millis(); });
 Poller poller(mqttThread);
+bool mqttConnected = false;
 
 extern "C" void app_main(void) {
   INFO(" Starting build : %s ", __DATE__);
@@ -41,9 +43,12 @@ extern "C" void app_main(void) {
 #endif
     {
       mqttThread.start();
-      vTaskDelay(10);
-      //     syslog.init("192.168.1.1", 514);
-      mqtt.init("limero.ddns.net");
+      vTaskDelay(100);
+      for (int i = 0; i < DNS_MAX_SERVERS; i++) {
+        const ip_addr_t *pdns = dns_getserver(i);
+        INFO(" DNS [%d] = %s ", i, ipaddr_ntoa(pdns));
+      }
+      //      syslog.init("192.168.1.1", 514);
     };
   //  mqtt.wifiConnected.on(true);
   /* poller.connected = true;
@@ -53,20 +58,29 @@ extern "C" void app_main(void) {
    poller >> systemHostname >> mqtt.toTopic<std::string>("system/hostname");
    poller >> systemBuild >> mqtt.toTopic<std::string>("system/build");
    poller >> systemAlive >> mqtt.toTopic<bool>("system/alive");*/
-
   while (true) {
     INFO(" INFO log ! %ld", Sys::millis());
-    std::string message = std::to_string(Sys::millis());
-    std::string topic = "src/ESP/system/upTime";
-    mqtt.publish(topic, message);
+    if (mqttConnected) {
+      std::string message = std::to_string(Sys::millis());
+      std::string topic = "src/ESP/system/upTime";
+      LOCK_TCPIP_CORE();
+      mqtt.publish(topic, message);
+      UNLOCK_TCPIP_CORE();
+    }
     ip_addr_t addr;
     err_t rc = dns_gethostbyname(
         "limero.ddns.net", &addr,
         [](const char *name, const ip_addr_t *ipaddr, void *callback_arg) {
-          INFO(" hostname found %s", name);
+          INFO(" dns_gethostname callback  %s : %s ", name,
+               ipaddr ? ipaddr_ntoa(ipaddr) : "<not found>");
+          if (!mqttConnected && ipaddr != 0) {
+            mqtt.init(*ipaddr);
+            mqttConnected = true;
+          }
         },
         0);
     INFO(" err %d : dns_gethostbyname()", rc);
     vTaskDelay(100);
+    dns_tmr();
   }
 }

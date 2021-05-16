@@ -20,7 +20,7 @@ static struct netif pppos_netif;
 #define TXD_PIN 21
 #define RXD_PIN 19
 
-#define UART_USED UART_NUM_1
+#define UART_USED UART_NUM_0
 
 #if UART_USED == UART_NUM_0
 #define BAUDRATE 921600

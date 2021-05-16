@@ -23,6 +23,7 @@ class MqttClient {
   };
  public:
   void init(const char* mqttIp, uint32_t port = 1883);
+  void init(ip_addr_t ipAddress,uint32_t port=1883);
 
   static void mqtt_incoming_data_cb(void* arg, const u8_t* data, u16_t len,
                                     u8_t flags);
